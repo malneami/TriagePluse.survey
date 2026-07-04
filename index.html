@@ -484,7 +484,7 @@ body.rtl .q-hint{border-left:none;border-right:2px solid var(--teal)}
 </div>
 
 <script>
-var WEBHOOK_URL='https://script.google.com/macros/s/AKfycbzuFvWOOwd5Liq72ZbBrhnWrELQe9RBAg1XU0lmINc-57btIHbobMEr46J-WPHO8niSRw/exec';
+var WEBHOOK_URL='https://script.google.com/macros/s/AKfycbwk4Q9IQhW3nKKawgYof2_B1_m2ULeNAiqTrqIMk4b_wmPLD5crbHBU9N-yZXcCCqbRZA/exec';
 var part=null,idx=0;
 var flowA=['sec-0','sec-A1','sec-A2','sec-A3'];
 var flowB=['sec-0','sec-B1','sec-B2'];
@@ -554,17 +554,64 @@ function collectData(){
 function submitSurvey(){
   if(!validate(curSec()))return;
   var data=collectData();
+
+  // Save locally first
   try{var all=JSON.parse(localStorage.getItem('tp_r')||'[]');all.push(data);localStorage.setItem('tp_r',JSON.stringify(all));}catch(e){}
+
+  // Show thank you immediately
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active')});
   document.getElementById('thankyou').classList.add('active');
   document.getElementById('prog-fill').style.width='100%';
   document.getElementById('prog-pct').textContent='100%';
   document.getElementById('prog-label').textContent='Complete · مكتمل';
   window.scrollTo({top:0,behavior:'smooth'});
-  if(WEBHOOK_URL&&WEBHOOK_URL!=='PASTE_YOUR_WEBAPP_URL_HERE'){
-    fetch(WEBHOOK_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
-    .then(function(){console.log('✅ Sent to Google Sheets')})
-    .catch(function(err){console.warn('⚠️ Webhook failed:',err)});
+
+  // Send to Google Sheets via hidden iframe form (bypasses CORS)
+  if(WEBHOOK_URL && WEBHOOK_URL !== 'PASTE_YOUR_WEBAPP_URL_HERE'){
+    sendToSheet(data);
+  }
+}
+
+function sendToSheet(data){
+  try{
+    // Build a hidden form and submit it — most reliable CORS bypass
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = WEBHOOK_URL;
+    form.target = 'hidden_iframe';
+    form.style.display = 'none';
+
+    // Add all fields as hidden inputs
+    Object.keys(data).forEach(function(key){
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = data[key] || '';
+      form.appendChild(input);
+    });
+
+    // Create hidden iframe to catch the response
+    var iframe = document.getElementById('hidden_iframe');
+    if(!iframe){
+      iframe = document.createElement('iframe');
+      iframe.name = 'hidden_iframe';
+      iframe.id = 'hidden_iframe';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    console.log('✅ Submitted to Google Sheets via form POST');
+  }catch(err){
+    console.warn('Form submit failed, trying fetch:', err);
+    // Fallback: fetch no-cors
+    fetch(WEBHOOK_URL, {
+      method:'POST',
+      mode:'no-cors',
+      body: JSON.stringify(data)
+    }).catch(function(){});
   }
 }
 function setLang(lang){
