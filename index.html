@@ -499,16 +499,16 @@ body.rtl .q-hint { border-left: none; border-right: 3px solid var(--teal); }
       </div>
     </div>
     <div class="role-grid">
-      <label class="role-card" id="role-a">
-        <input type="radio" name="q1" value="nurse" onchange="selectRole('A')">
+      <label class="role-card" id="role-a" onclick="selectRole('A')">
+        <input type="radio" name="q1" value="nurse">
         <div class="role-emoji">🩺</div>
         <div class="role-title">Triage Nurse</div>
         <div class="role-title-ar">ممرضة الفرز</div>
         <div class="role-desc">I perform triage assessments at the station</div>
         <span class="role-badge rb-a">Part A · 13 questions</span>
       </label>
-      <label class="role-card" id="role-b">
-        <input type="radio" name="q1" value="receiver" onchange="selectRole('B')">
+      <label class="role-card" id="role-b" onclick="selectRole('B')">
+        <input type="radio" name="q1" value="receiver">
         <div class="role-emoji">👨‍⚕️</div>
         <div class="role-title">Physician / Charge Nurse / Manager</div>
         <div class="role-title-ar">طبيب / ممرضة مسؤولة / مدير</div>
@@ -1050,7 +1050,7 @@ function submitSurvey(){
 }
 
 function sendToSheet(data){
-  // Build query string — GET requests bypass the CORS redirect issue
+  // Build query string - GET requests bypass the CORS redirect issue
   // that blocks POST fetch() calls to Google Apps Script from browsers.
   // The Apps Script doGet() handles e.parameter identically to doPost().
   var qs = Object.keys(data).map(function(k){
@@ -1062,7 +1062,7 @@ function sendToSheet(data){
   // Primary: GET fetch with no-cors (works reliably with Google Apps Script)
   fetch(url, { method: 'GET', mode: 'no-cors' })
     .catch(function(err){
-      // Fallback: Image beacon — fires a GET request without any CORS restriction
+      // Fallback: Image beacon - fires a GET request without any CORS restriction
       try {
         var img = new Image();
         img.src = url;
