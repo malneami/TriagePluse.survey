@@ -1050,46 +1050,24 @@ function submitSurvey(){
 }
 
 function sendToSheet(data){
-  // Build URL-encoded form body (required by Google Apps Script e.parameter)
-  var body = Object.keys(data).map(function(k){
+  // Build query string — GET requests bypass the CORS redirect issue
+  // that blocks POST fetch() calls to Google Apps Script from browsers.
+  // The Apps Script doGet() handles e.parameter identically to doPost().
+  var qs = Object.keys(data).map(function(k){
     return encodeURIComponent(k) + '=' + encodeURIComponent(data[k] || '');
   }).join('&');
 
-  // Primary: fetch with no-cors + form-encoded body
-  // Google Apps Script processes e.parameter from application/x-www-form-urlencoded
-  fetch(WEBHOOK_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body
-  }).catch(function(err){
-    // Fallback: hidden iframe form submit (works when fetch is blocked)
-    try {
-      var iframe = document.getElementById('hidden_iframe');
-      if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.name = 'hidden_iframe';
-        iframe.id = 'hidden_iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-      }
-      var form = document.createElement('form');
-      form.method = 'POST';
-      form.action = WEBHOOK_URL;
-      form.target = 'hidden_iframe';
-      form.style.display = 'none';
-      Object.keys(data).forEach(function(key) {
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = data[key] || '';
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(function(){ document.body.removeChild(form); }, 2000);
-    } catch(e2) {}
-  });
+  var url = WEBHOOK_URL + '?' + qs;
+
+  // Primary: GET fetch with no-cors (works reliably with Google Apps Script)
+  fetch(url, { method: 'GET', mode: 'no-cors' })
+    .catch(function(err){
+      // Fallback: Image beacon — fires a GET request without any CORS restriction
+      try {
+        var img = new Image();
+        img.src = url;
+      } catch(e2) {}
+    });
 }
 
 function setLang(lang){
