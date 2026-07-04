@@ -140,10 +140,13 @@ function buildRowB(d) {
 }
 
 // ─── Sheet Helpers ────────────────────────────────────────────────────────────
-function appendRow(ss, sheetName, headers, rowData) {
-  var sheet = ss.getSheetByName(sheetName);
 
-  // Create sheet if it doesn't exist
+/**
+ * Creates a sheet with formatted headers if it doesn't already exist.
+ * Returns the sheet object.
+ */
+function createSheetWithHeaders(ss, sheetName, headers) {
+  var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     // Add header row with formatting
@@ -156,15 +159,27 @@ function appendRow(ss, sheetName, headers, rowData) {
     sheet.setFrozenRows(1);
     sheet.setColumnWidth(1, 180);  // Timestamp
     sheet.setColumnWidth(2, 120);  // Part
-    // Set wider columns for text answers
-    [11, 12, 15].forEach(function(col) { // Q9, Q10, Q13
+    // Set wider columns for free-text answers
+    [11, 12, 15].forEach(function(col) {
       if (col <= headers.length) sheet.setColumnWidth(col, 320);
     });
-    // Auto-resize other columns
+    // Standard width for remaining columns
     for (var i = 3; i <= headers.length; i++) {
       if ([11, 12, 15].indexOf(i) === -1) sheet.setColumnWidth(i, 180);
     }
   }
+  return sheet;
+}
+
+/**
+ * Appends a data row to the named sheet, creating it with headers first if needed.
+ * rowData must be a non-empty array.
+ */
+function appendRow(ss, sheetName, headers, rowData) {
+  // Guard: skip if rowData is empty (e.g. called from setupSheets)
+  if (!rowData || rowData.length === 0) return;
+
+  var sheet = createSheetWithHeaders(ss, sheetName, headers);
 
   // Append data row
   var lastRow = sheet.getLastRow();
@@ -211,10 +226,9 @@ function setupSheets() {
   var defaultSheet = ss.getSheetByName('Sheet1');
   if (defaultSheet) defaultSheet.setName('Summary');
 
-  // Create Part A sheet
-  appendRow(ss, PART_A_SHEET, HEADERS_A, []);
-  // Create Part B sheet
-  appendRow(ss, PART_B_SHEET, HEADERS_B, []);
+  // Create Part A and Part B sheets with headers only (no data rows)
+  createSheetWithHeaders(ss, PART_A_SHEET, HEADERS_A);
+  createSheetWithHeaders(ss, PART_B_SHEET, HEADERS_B);
 
   // Format Summary sheet
   var summary = ss.getSheetByName('Summary');
