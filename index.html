@@ -952,9 +952,15 @@ function curSec(){ return flow()[idx]; }
 
 function selectRole(p){
   part = p;
-  document.getElementById('role-a').classList.toggle('selected', p==='A');
-  document.getElementById('role-b').classList.toggle('selected', p==='B');
+  // Mark the radio input as checked so collectData() captures it
+  var inp = document.querySelector('input[name="q1"][value="'+(p==='A'?'nurse':'receiver')+'"]');
+  if(inp) inp.checked = true;
+  applyRoleVisual();
   document.getElementById('err-q1').classList.remove('show');
+}
+function applyRoleVisual(){
+  document.getElementById('role-a').classList.toggle('selected', part==='A');
+  document.getElementById('role-b').classList.toggle('selected', part==='B');
 }
 
 document.querySelectorAll('.opt-label input[type=radio]').forEach(function(inp){
@@ -1009,6 +1015,8 @@ function updateProgress(){
 function showSec(id){
   document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
   var el = document.getElementById(id); if(el) el.classList.add('active');
+  // Re-apply role visual state every time sec-0 is shown (back navigation)
+  if(id === 'sec-0') applyRoleVisual();
   updateProgress();
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -1044,7 +1052,7 @@ function submitSurvey(){
   window.scrollTo({top:0, behavior:'smooth'});
 
   // Send to Google Sheets
-  if(WEBHOOK_URL && WEBHOOK_URL !== https://script.google.com/macros/s/AKfycbx6q7WVX6Hj90zdRQ9ecmm1gdJhT-ZvopODPteTHTR2-xedn616yiPnuSosWSnTgwDM/exec){
+  if(WEBHOOK_URL){
     sendToSheet(data);
   }
 }
