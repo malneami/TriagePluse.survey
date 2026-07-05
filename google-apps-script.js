@@ -93,6 +93,20 @@ function doPost(e) {
 
 function doGet(e) {
   // Handle ?action=summary — return all rows as JSON for the admin dashboard
+  // Supports JSONP via ?callback= parameter to bypass browser CORS restrictions
+  var callback = e && e.parameter && e.parameter.callback ? e.parameter.callback : null;
+  function respond(obj) {
+    var json = JSON.stringify(obj);
+    if (callback) {
+      // JSONP: wrap in callback function call so browser can read it cross-origin
+      return ContentService
+        .createTextOutput(callback + '(' + json + ');')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService
+      .createTextOutput(json)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   try {
     if (e && e.parameter && e.parameter.action === 'summary') {
       var ss0 = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
@@ -101,11 +115,9 @@ function doGet(e) {
       sheetsToRead.forEach(function(sheetName) {
         var sh = ss0.getSheetByName(sheetName);
         if (!sh || sh.getLastRow() < 2) return;
-        var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
         var data = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
         data.forEach(function(row) {
           var obj = {};
-          // Map to short field names for the dashboard
           obj.part = (row[1] || '').indexOf('A') !== -1 ? 'A' : 'B';
           obj.timestamp = row[0] ? row[0].toString() : '';
           obj.experience = row[3] || '';
@@ -113,24 +125,19 @@ function doGet(e) {
             obj.q3 = row[4] || ''; obj.q4 = row[5] || ''; obj.q5 = row[6] || '';
             obj.q6 = row[7] || ''; obj.q7 = row[8] || ''; obj.q8 = row[9] || '';
             obj.q9 = row[10] || ''; obj.q10 = row[11] || ''; obj.q11 = row[12] || '';
-            obj.q12 = row[13] || ''; obj.q13 = row[14] || ''; obj.q14 = row[15] || '';
-            obj.q15 = row[16] || '';
+            obj.q12 = row[13] || ''; obj.q13 = row[14] || '';
           } else {
             obj.qb3 = row[4] || ''; obj.qb4 = row[5] || ''; obj.qb5 = row[6] || '';
             obj.qb6 = row[7] || ''; obj.qb7 = row[8] || ''; obj.qb8 = row[9] || '';
-            obj.qb9 = row[10] || ''; obj.qb10 = row[11] || ''; obj.qb11 = row[12] || '';
+            obj.qb9 = row[10] || '';
           }
           rows.push(obj);
         });
       });
-      return ContentService
-        .createTextOutput(JSON.stringify({ status: 'ok', rows: rows, total: rows.length }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return respond({ status: 'ok', rows: rows, total: rows.length });
     }
   } catch(sumErr) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: 'error', message: sumErr.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return respond({ status: 'error', message: sumErr.toString() });
   }
   // Also handle GET submissions from the browser (no-cors fetch)
   try {
